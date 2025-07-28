@@ -1,37 +1,31 @@
 const express = require('express');
-const fetch = require('node-fetch');
+const axios = require('axios');
+const cors = require('cors');
+
 const app = express();
+const port = process.env.PORT || 10000;
 
-const PORT = process.env.PORT || 10000;
+const AMPECO_TOKEN = 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOi...'; // ← החלף את הטוקן אם משתנה בעתיד
 
-// 🔑 API token שהוזן עבורך
-const API_TOKEN = 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE5MzE4NjEwNDcsImlhdCI6MTcxOTMwNTA0NywianRpIjoiM2E1ZTVhNDMtZjQwNC00NDExLTk5NDEtOGM5ZTgzOWJmNzE0IiwidXNlcl9pZCI6InVzci03MzUzIn0.qWB5X-m8iZ3dShujU-xY9BzMSPArS4Ye_ylHyxlD9Yk';
+const AMPECO_BASE_URL = 'https://cp.edgecontrol.net/public-api/resources/charge-points/v1.0';
 
-app.get('/', (req, res) => {
-  res.send('✅ AMPECO Proxy is working. Go to /chargepoints to see data.');
-});
+app.use(cors());
 
-app.get('/chargepoints', async (req, res) => {
+app.get('/charge-points', async (req, res) => {
   try {
-    const response = await fetch('https://api.portal.ampeco.io/api/v1/charge-points', {
+    const response = await axios.get(AMPECO_BASE_URL, {
       headers: {
-        Authorization: API_TOKEN,
+        Authorization: AMPECO_TOKEN,
         'Content-Type': 'application/json'
       }
     });
 
-    if (!response.ok) {
-      throw new Error(`AMPECO API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (err) {
-    console.error('Error fetching charge points:', err);
-    res.status(500).send('❌ Failed to fetch charge points from AMPECO');
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch charge points from AMPECO' });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Proxy server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Proxy server running on port ${port}`);
 });
