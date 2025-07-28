@@ -1,38 +1,63 @@
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
-const app = express();
-const port = process.env.PORT || 10000;
+const Dashboard = () => {
+  const [data, setData] = useState([]);
+  const [filter, setFilter] = useState('');
+  const [loading, setLoading] = useState(false);
 
-const AMPECO_TOKEN = 'Bearer 5b616246-8aac-48a3-aae2-98f94494f669'; // ← שים את הטוקן שלך כאן
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('https://cp.edgecontrol.net/public-api/resources/charge-points/v1.0', {
+        headers: {
+          Authorization: 'Bearer 5b616246-8aac-48a3-aae2-98f94494f669',
+          'Content-Type': 'application/json'
+        }
+      });
+      const json = await res.json();
+      setData(json.data || []);
+    } catch (err) {
+      console.error('Failed to fetch data:', err);
+    }
+    setLoading(false);
+  };
 
-const AMPECO_BASE_URL = 'https://cp.edgecontrol.net/public-api/resources/charge-points/v1.0';
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-app.use(cors());
+  const filtered = data.filter(station => station.name.toLowerCase().includes(filter.toLowerCase()));
+  const pricePerKW = 2.2;
 
-// נתיב ראשי - כדי שלא תקבל שגיאה ב- /
-app.get('/', (req, res) => {
-  res.send('AMPECO Proxy Server is running');
-});
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex gap-2 items-center">
+        <Input placeholder="סנן לפי עיר או שם עמדת טעינה..." value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full max-w-sm" />
+        <Button onClick={fetchData} disabled={loading}>{loading ? 'טוען...' : 'רענן'}</Button>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {filtered.map((station) => {
+          const totalKW = station.evses?.reduce((sum, evse) => sum + (evse.maxPower || 0), 0) / 1000;
+          const totalRevenue = totalKW * pricePerKW;
 
-// הנתיב שאתה אמור לקרוא אליו מה-Frontend
-app.get('/charge-points', async (req, res) => {
-  try {
-    const response = await axios.get(AMPECO_BASE_URL, {
-      headers: {
-        Authorization: AMPECO_TOKEN,
-        'Content-Type': 'application/json'
-      }
-    });
+          return (
+            <Card key={station.id}>
+              <CardContent className="p-4 space-y-2">
+                <h2 className="text-xl font-semibold">{station.name}</h2>
+                <p>IP: {station.networkIp}</p>
+                <p>מספר שקעי טעינה: {station.evses?.length}</p>
+                <p>סה"כ הספק (KW): {totalKW.toFixed(2)}</p>
+                <p>הכנסה מוערכת (₪): {totalRevenue.toFixed(2)}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
-    res.json(response.data);
-  } catch (error) {
-    console.error(error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to fetch charge points from AMPECO' });
-  }
-});
-
-app.listen(port, () => {
-  console.log(`Proxy server running on port ${port}`);
-});
+export default Dashboard;
