@@ -5,7 +5,7 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 10000;
 
-const AMPECO_TOKEN = '5b616246-8aac-48a3-aae2-98f94494f669'; // ← שים את הטוקן שלך כאן
+const AMPECO_TOKEN = 'Bearer 5b616246-8aac-48a3-aae2-98f94494f669'; // ← שים את הטוקן שלך כאן
 
 const AMPECO_BASE_URL = 'https://cp.edgecontrol.net/public-api/resources/charge-points/v1.0';
 
